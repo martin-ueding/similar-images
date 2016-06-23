@@ -42,8 +42,10 @@ def main():
     errors = []
 
     if options.limit is None:
+        limit = len(options.images)
         filenames = options.images
     else:
+        limit = options.limit
         filenames = options.images[:options.limit]
 
     normalized_images = []
@@ -63,6 +65,7 @@ def main():
     averages = []
 
     for i in range(len(normalized_images)):
+        print('Working on {:d} of {:d} …'.format(i, limit))
         first = normalized_images[i]
         for j in range(i + 1, len(normalized_images)):
             second = normalized_images[j]
