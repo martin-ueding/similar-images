@@ -42,13 +42,13 @@ def main():
     errors = []
 
     if options.limit is None:
-        images = options.images
+        filenames = options.images
     else:
-        images = options.images[:options.limit]
+        filenames = options.images[:options.limit]
 
     normalized_images = []
     shapes = []
-    for i, filename in zip(itertools.count(), images):
+    for i, filename in zip(itertools.count(), filenames):
         try:
             normalized, shape = normalize_image(filename)
         except ValueError as e:
@@ -81,9 +81,9 @@ def main():
                     print('{:5d} {:5d} {:10.1f}'.format(i, j, average))
                     print(options.images[i], filenames[j])
 
-                    print(shape[i], shape[j])
+                    print(shapes[i], shapes[j])
 
-                    if shape[i] < shape[j]:
+                    if shapes[i] < shapes[j]:
                         to_delete = filenames[i]
                     else:
                         to_delete = filenames[j]
