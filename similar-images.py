@@ -83,7 +83,7 @@ def main():
                 averages.append(average)
 
 
-                if average < 2:
+                if average < options.average:
                     print()
                     print('{:5d} {:5d} {:10.1f}'.format(i, j, average))
                     print(options.images[i], filenames[j])
@@ -133,6 +133,7 @@ def _parse_args():
     parser.add_argument('images', nargs='+')
     parser.add_argument('--limit', type=int)
     parser.add_argument('--moveto')
+    parser.add_argument('--average', type=int, default=2)
     options = parser.parse_args()
 
     return options
