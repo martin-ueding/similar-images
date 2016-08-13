@@ -36,6 +36,7 @@ def get_difference(filename_1, filename_2):
     average = np.mean(np.abs(difference))
     return average
 
+
 def main():
     options = _parse_args()
 
