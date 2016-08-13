@@ -57,6 +57,8 @@ def main():
             normalized, shape = normalize_image(filename)
         except ValueError as e:
             errors.append(e)
+        except OSError as e:
+            errors.append(e)
         else:
             normalized_images.append(normalized)
             shapes.append(shape)
