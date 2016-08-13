@@ -8,6 +8,7 @@ import itertools
 import os.path
 import shutil
 import sys
+import uuid
 
 import matplotlib.pyplot as pl
 import numpy as np
@@ -96,7 +97,13 @@ def main():
 
                     if options.moveto is not None:
                         if os.path.isfile(to_delete):
-                            shutil.move(to_delete, options.moveto)
+                            destination = os.path.join(options.moveto, os.path.basename(to_delete))
+                            while os.path.isfile(destination):
+                                base, ext = os.path.splitext(to_delete)
+                                destination = os.path.join(
+                                    options.moveto,
+                                    uuid.uuid4().hex + ext)
+                            shutil.move(to_delete, destination)
 
 
     pl.hist(averages, bins=200)
