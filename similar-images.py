@@ -7,6 +7,7 @@ import argparse
 import itertools
 import os.path
 import shutil
+import subprocess
 import sys
 import uuid
 
@@ -68,6 +69,8 @@ def main():
 
     averages = []
 
+    moves = []
+
     for i in range(len(normalized_images)):
         print('Working on {:d} of {:d} …'.format(i, limit))
         first = normalized_images[i]
@@ -92,20 +95,36 @@ def main():
 
                     if shapes[i] < shapes[j]:
                         to_delete = filenames[i]
+                        to_keep = filenames[j]
                     else:
                         to_delete = filenames[j]
+                        to_keep = filenames[i]
 
                     print('Suggest deletion of', to_delete)
 
                     if options.moveto is not None:
-                        if os.path.isfile(to_delete):
-                            destination = os.path.join(options.moveto, os.path.basename(to_delete))
-                            while os.path.isfile(destination):
-                                base, ext = os.path.splitext(to_delete)
-                                destination = os.path.join(
-                                    options.moveto,
-                                    uuid.uuid4().hex + ext)
-                            shutil.move(to_delete, destination)
+                        if not os.path.isfile(to_delete):
+                            continue
+
+                        destination = os.path.join(options.moveto, os.path.basename(to_delete))
+                        while os.path.isfile(destination):
+                            base, ext = os.path.splitext(to_delete)
+                            destination = os.path.join(
+                                options.moveto,
+                                uuid.uuid4().hex + ext)
+
+
+                        base, ext = os.path.splitext(destination)
+                        subprocess.check_call([
+                            'montage', to_keep, to_delete,
+                            '-geometry', '200x200>+4+3',
+                            base + '-proof.jpg'])
+
+                        moves.append((to_delete, destination))
+
+    for source, dest in moves:
+        if os.path.isfile(source):
+            shutil.move(source, dest)
 
 
     pl.hist(averages, bins=200)
