@@ -17,15 +17,11 @@ import numpy as np
 import scipy.misc
 
 
-phase = 1
-
-
-def print_phase_start(title):
-    global phase
+def print_phase_start(title, phase=[1]):
     print()
-    print('=== Phase {}: {} ==='.format(phase, title))
+    print('=== Phase {}: {} ==='.format(phase[0], title))
     print()
-    phase += 1
+    phase[0] += 1
 
 
 def argmax(iterable):
