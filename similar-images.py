@@ -16,11 +16,24 @@ import matplotlib.pyplot as pl
 import numpy as np
 import scipy.misc
 
+
+phase = 1
+
+
+def print_phase_start(title):
+    global phase
+    print()
+    print('=== Phase {}: {} ==='.format(phase, title))
+    print()
+    phase += 1
+
+
 def argmax(iterable):
     '''
     http://stackoverflow.com/a/26726185
     '''
     return max(enumerate(iterable), key=lambda x: x[1])[0]
+
 
 def normalize_image(filename):
     image = scipy.misc.imread(filename)
@@ -44,15 +57,6 @@ def get_difference(filename_1, filename_2):
     difference = np.subtract(first.astype(int), second.astype(int))
     average = np.mean(difference**2)
     return average
-
-phase = 1
-
-def print_phase_start(title):
-    global phase
-    print()
-    print('=== Phase {}: {} ==='.format(phase, title))
-    print()
-    phase += 1
 
 
 def get_all_files(dirs):
