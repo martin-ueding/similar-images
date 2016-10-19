@@ -6,6 +6,7 @@
 import argparse
 import itertools
 import os.path
+import shlex
 import shutil
 import subprocess
 import sys
@@ -35,7 +36,7 @@ def get_difference(filename_1, filename_2):
         second = scipy.misc.imresize(images[0], shapes[1], 'bilinear')
 
     difference = np.subtract(first.astype(int), second.astype(int))
-    average = np.mean(np.abs(difference))
+    average = np.mean(difference**2)
     return average
 
 
@@ -87,11 +88,6 @@ def main():
 
 
                 if average < options.average:
-                    print()
-                    print('{:5d} {:5d} {:10.1f}'.format(i, j, average))
-                    print(options.images[i], filenames[j])
-
-                    print(shapes[i], shapes[j])
 
                     if shapes[i] < shapes[j]:
                         to_delete = filenames[i]
@@ -99,6 +95,12 @@ def main():
                     else:
                         to_delete = filenames[j]
                         to_keep = filenames[i]
+
+                    print()
+                    print('{:5d} {:5d} {:10.1f}'.format(i, j, average))
+                    print(shlex.quote(filenames[i]), shlex.quote(filenames[j]))
+
+                    print(shapes[i], shapes[j])
 
                     print('Suggest deletion of', to_delete)
 
@@ -120,7 +122,12 @@ def main():
                             '-geometry', '200x200>+4+3',
                             base + '-proof.jpg'])
 
-                        moves.append((to_delete, destination))
+                        scipy.misc.imsave(base + '-difference.jpg', difference)
+                        scipy.misc.imsave(base + '-first.jpg', first)
+                        scipy.misc.imsave(base + '-second.jpg', second)
+
+                        if not options.dry:
+                            moves.append((to_delete, destination))
 
     for source, dest in moves:
         if os.path.isfile(source):
@@ -130,6 +137,9 @@ def main():
     pl.hist(averages, bins=200)
     pl.yscale('log')
     pl.savefig('hist.pdf')
+
+    pl.xlim(-1, 50)
+    pl.savefig('hist-50.pdf')
 
     if len(errors) > 0:
         print()
@@ -152,7 +162,8 @@ def _parse_args():
     parser.add_argument('images', nargs='+')
     parser.add_argument('--limit', type=int)
     parser.add_argument('--moveto')
-    parser.add_argument('--average', type=int, default=2)
+    parser.add_argument('--dry', action='store_true')
+    parser.add_argument('--average', type=int, default=2, help='default %(default)s')
     options = parser.parse_args()
 
     return options
