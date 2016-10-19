@@ -16,6 +16,12 @@ import matplotlib.pyplot as pl
 import numpy as np
 import scipy.misc
 
+def argmax(iterable):
+    '''
+    http://stackoverflow.com/a/26726185
+    '''
+    return max(enumerate(iterable), key=lambda x: x[1])[0]
+
 def normalize_image(filename):
     image = scipy.misc.imread(filename)
     shape = image.shape
@@ -39,106 +45,133 @@ def get_difference(filename_1, filename_2):
     average = np.mean(difference**2)
     return average
 
+phase = 1
+
+def print_phase_start(title):
+    global phase
+    print()
+    print('=== Phase {}: {} ==='.format(phase, title))
+    print()
+    phase += 1
+
 
 def main():
     options = _parse_args()
 
     errors = []
 
+    print_phase_start('Travese Paths')
+    paths = []
+    for dir in options.dirs:
+        for dirpath, dirnames, filenames in os.walk(dir):
+            print(dirpath)
+            for filename in filenames:
+                paths.append(os.path.join(dirpath, filename))
+
     if options.limit is None:
-        limit = len(options.images)
-        filenames = options.images
+        limit = len(paths)
     else:
         limit = options.limit
-        filenames = options.images[:options.limit]
 
-    normalized_images = []
-    shapes = []
-    used_filenames = []
-
-    for i, filename in zip(itertools.count(), filenames):
+    print_phase_start('Read Images')
+    print('Have {} images to read'.format(limit))
+    print()
+    i = 0
+    library = []
+    for path in paths[:limit]:
         try:
-            normalized, shape = normalize_image(filename)
+            normalized, shape = normalize_image(path)
         except ValueError as e:
             errors.append(e)
         except OSError as e:
             errors.append(e)
         else:
-            normalized_images.append(normalized)
-            shapes.append(shape)
-            used_filenames.append(filename)
+            library.append((path, normalized, shape))
 
-        if i % 10 == 0:
+        i += 1
+        if i % 20 == 0:
             print('{:5d} {}'.format(i, filename))
 
-    filenames = used_filenames
 
+    print_phase_start('Find Duplicates')
     averages = []
-
-    moves = []
-
-    for i in range(len(normalized_images)):
+    doubles = {}
+    for i in range(len(library)):
         print('Working on {:d} of {:d} …'.format(i, limit))
-        first = normalized_images[i]
-        for j in range(i + 1, len(normalized_images)):
-            second = normalized_images[j]
+
+        if any(i in seconds for first, seconds in doubles.items()):
+            print('Skipping {} because it is marked as a double already'.format(i))
+            continue
+
+        filename1, normalized1, shape1 = library[i]
+        for j in range(i + 1, len(library)):
+            filename2, normalized2, shape2 = library[j]
 
             try:
-                difference = np.subtract(first.astype(int), second.astype(int))
+                difference = np.subtract(normalized1.astype(int), normalized2.astype(int))
                 average = np.mean(np.abs(difference))
             except ValueError as e:
                 errors.append(e)
-            else:
-                averages.append(average)
+                continue
 
+            averages.append(average)
 
-                if average < options.average:
+            if average < options.average:
+                print('Marking {} as a duplicate of {}.'.format(j, i))
+                if i not in doubles:
+                    doubles[i] = []
+                doubles[i].append(j)
 
-                    if shapes[i] < shapes[j]:
-                        to_delete = filenames[i]
-                        to_keep = filenames[j]
-                    else:
-                        to_delete = filenames[j]
-                        to_keep = filenames[i]
+    print_phase_start('Find Best Image in Set')
+    moves = []
+    for i, js in doubles.items():
+        candidate_ids = [i] + js
+        shapes = [library[c][2] for c in candidate_ids]
+        best_idx = argmax(shapes)
+        best_i = candidate_ids[best_idx]
+        move_idxs = list(range(len(js) + 1))
+        del move_idxs[best_idx]
 
-                    print()
-                    print('{:5d} {:5d} {:10.1f}'.format(i, j, average))
-                    print(shlex.quote(filenames[i]), shlex.quote(filenames[j]))
+        del candidate_ids[best_idx]
 
-                    print(shapes[i], shapes[j])
+        shape_keep = shapes[best_idx]
+        shapes_move = [shapes[x] for x in move_idxs]
 
-                    print('Suggest deletion of', to_delete)
+        print('Keeping {}; deleting {}.'.format(best_i, ', '.join(map(str, candidate_ids))))
+        print('Keeping {}; deleting {}.'.format(shape_keep, ', '.join(map(str, shapes_move))))
 
-                    if options.moveto is not None:
-                        if not os.path.isfile(to_delete):
-                            continue
+        if options.moveto is None:
+            continue
 
-                        destination = os.path.join(options.moveto, os.path.basename(to_delete))
-                        while os.path.isfile(destination):
-                            base, ext = os.path.splitext(to_delete)
-                            destination = os.path.join(
-                                options.moveto,
-                                uuid.uuid4().hex + ext)
+        filename_keep, normalized_keep, shape_keep = library[best_i]
+        for candidate_id in candidate_ids:
+            filename_move, normalized_move, shape_move = library[candidate_id]
 
+            destination = os.path.join(options.moveto, os.path.basename(filename_move))
+            while os.path.isfile(destination):
+                base, ext = os.path.splitext(filename_move)
+                destination = os.path.join(
+                    options.moveto,
+                    uuid.uuid4().hex + ext)
 
-                        base, ext = os.path.splitext(destination)
-                        subprocess.check_call([
-                            'montage', to_keep, to_delete,
-                            '-geometry', '200x200>+4+3',
-                            base + '-proof.jpg'])
+            moves.append((filename_move, destination))
 
-                        scipy.misc.imsave(base + '-difference.jpg', difference)
-                        scipy.misc.imsave(base + '-first.jpg', first)
-                        scipy.misc.imsave(base + '-second.jpg', second)
+            base, ext = os.path.splitext(destination)
+            subprocess.check_call([
+                'montage', filename_keep, filename_move,
+                '-geometry', '200x200>+4+3',
+                base + '-proof.jpg'])
 
-                        if not options.dry:
-                            moves.append((to_delete, destination))
+            scipy.misc.imsave(base + '-keep.jpg', normalized_keep)
+            scipy.misc.imsave(base + '-move.jpg', normalized_move)
 
-    for source, dest in moves:
-        if os.path.isfile(source):
-            shutil.move(source, dest)
+    if not options.dry:
+        print_phase_start('Move Files')
+        for source, dest in moves:
+            if os.path.isfile(source):
+                shutil.move(source, dest)
 
-
+    print_phase_start('Generate Histogram')
     pl.hist(averages, bins=200)
     pl.grid(True)
     ymin, ymax = pl.ylim()
@@ -150,8 +183,7 @@ def main():
     pl.savefig('hist-50.pdf')
 
     if len(errors) > 0:
-        print()
-        print('Errors:')
+        print_phase_start('Print Errors')
         for error in set(map(str, errors)):
             print(error)
 
@@ -167,7 +199,7 @@ def _parse_args():
     :rtype: Namespace
     '''
     parser = argparse.ArgumentParser(description='')
-    parser.add_argument('images', nargs='+')
+    parser.add_argument('dirs', nargs='+')
     parser.add_argument('--limit', type=int)
     parser.add_argument('--moveto')
     parser.add_argument('--dry', action='store_true')
