@@ -17,6 +17,9 @@ import numpy as np
 import scipy.misc
 
 
+print_error = print
+
+
 def print_phase_start(title, phase=[1]):
     print()
     print('=== Phase {}: {} ==='.format(phase[0], title))
@@ -120,6 +123,24 @@ def get_doubles(library):
     return doubles, averages
 
 
+def is_duplicate_of(library, i, j):
+    filename2, normalized2, shape2 = library[j]
+
+    try:
+        difference = np.subtract(normalized1.astype(int), normalized2.astype(int))
+        average = np.mean(np.abs(difference))
+    except ValueError as e:
+        print_error(e)
+        return False
+
+    result = average < options.average
+
+    if result:
+        print('Marking {} as a duplicate of {}.'.format(j, i))
+
+    return result
+
+
 def get_doubles_of(library, i):
     errors = []
 
@@ -128,23 +149,8 @@ def get_doubles_of(library, i):
 
     filename1, normalized1, shape1 = library[i]
 
-    for j in range(i + 1, len(library)):
-        filename2, normalized2, shape2 = library[j]
-
-        try:
-            difference = np.subtract(normalized1.astype(int), normalized2.astype(int))
-            average = np.mean(np.abs(difference))
-        except ValueError as e:
-            errors.append(e)
-            continue
-
-        averages_i.append(average)
-
-        if average < options.average:
-            print('Marking {} as a duplicate of {}.'.format(j, i))
-            doubles_i.append(j)
-
-    print_errors(errors)
+    results = map(lambda j: is_duplicate_of(library, i, j), range(i + 1, len(library)))
+    doubles_i = [idx for idx, result in zip(itertools.count(0), results) if result]
 
     return doubles_i, averages_i
 
