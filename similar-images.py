@@ -54,6 +54,8 @@ def main():
 
     normalized_images = []
     shapes = []
+    used_filenames = []
+
     for i, filename in zip(itertools.count(), filenames):
         try:
             normalized, shape = normalize_image(filename)
@@ -64,9 +66,12 @@ def main():
         else:
             normalized_images.append(normalized)
             shapes.append(shape)
+            used_filenames.append(filename)
 
         if i % 10 == 0:
             print('{:5d} {}'.format(i, filename))
+
+    filenames = used_filenames
 
     averages = []
 
@@ -135,6 +140,9 @@ def main():
 
 
     pl.hist(averages, bins=200)
+    pl.grid(True)
+    ymin, ymax = pl.ylim()
+    pl.ylim(0.1, ymax)
     pl.yscale('log')
     pl.savefig('hist.pdf')
 
