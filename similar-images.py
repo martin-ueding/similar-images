@@ -24,18 +24,11 @@ def print_phase_start(title, phase=[1]):
     phase[0] += 1
 
 
-def argmax(iterable):
-    '''
-    http://stackoverflow.com/a/26726185
-    '''
-    return max(enumerate(iterable), key=lambda x: x[1])[0]
-
-
-def normalize_image(filename):
-    image = scipy.misc.imread(filename)
-    shape = image.shape
-    resized = scipy.misc.imresize(image, (100, 100), 'bilinear')
-    return resized, shape
+def print_errors(errors):
+    if len(errors) > 0:
+        print_phase_start('Print Errors')
+        for error in set(map(str, errors)):
+            print(error)
 
 
 def get_difference(filename_1, filename_2):
@@ -68,6 +61,13 @@ def get_all_files(dirs):
     return paths
 
 
+def normalize_image(filename):
+    image = scipy.misc.imread(filename)
+    shape = image.shape
+    resized = scipy.misc.imresize(image, (100, 100), 'bilinear')
+    return resized, shape
+
+
 def build_library(paths, limit):
     print_phase_start('Read Images')
 
@@ -97,13 +97,6 @@ def build_library(paths, limit):
     print_errors(errors)
 
     return library
-
-
-def print_errors(errors):
-    if len(errors) > 0:
-        print_phase_start('Print Errors')
-        for error in set(map(str, errors)):
-            print(error)
 
 
 def get_doubles(library):
@@ -154,6 +147,13 @@ def get_doubles_of(library, i):
     print_errors(errors)
 
     return doubles_i, averages_i
+
+
+def argmax(iterable):
+    '''
+    http://stackoverflow.com/a/26726185
+    '''
+    return max(enumerate(iterable), key=lambda x: x[1])[0]
 
 
 def find_best_in_set(doubles, library):
