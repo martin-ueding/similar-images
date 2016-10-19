@@ -118,26 +118,42 @@ def get_doubles(library):
             print('Skipping {} because it is marked as a double already'.format(i))
             continue
 
-        filename1, normalized1, shape1 = library[i]
-        for j in range(i + 1, len(library)):
-            filename2, normalized2, shape2 = library[j]
+        doubles_i, averages_i = get_doubles_of(library, i)
 
-            try:
-                difference = np.subtract(normalized1.astype(int), normalized2.astype(int))
-                average = np.mean(np.abs(difference))
-            except ValueError as e:
-                errors.append(e)
-                continue
-
-            averages.append(average)
-
-            if average < options.average:
-                print('Marking {} as a duplicate of {}.'.format(j, i))
-                if i not in doubles:
-                    doubles[i] = []
-                doubles[i].append(j)
+        if len(doubles_i) > 0:
+            doubles[i] = doubles_i
+        averages += averages_i
 
     return doubles, averages
+
+
+def get_doubles_of(library, i):
+    errors = []
+
+    doubles_i = []
+    averages_i = []
+
+    filename1, normalized1, shape1 = library[i]
+
+    for j in range(i + 1, len(library)):
+        filename2, normalized2, shape2 = library[j]
+
+        try:
+            difference = np.subtract(normalized1.astype(int), normalized2.astype(int))
+            average = np.mean(np.abs(difference))
+        except ValueError as e:
+            errors.append(e)
+            continue
+
+        averages_i.append(average)
+
+        if average < options.average:
+            print('Marking {} as a duplicate of {}.'.format(j, i))
+            doubles_i.append(j)
+
+    print_errors(errors)
+
+    return doubles_i, averages_i
 
 
 def find_best_in_set(doubles, library):
