@@ -4,7 +4,6 @@
 # Copyright © 2016 Martin Ueding <dev@martin-ueding.de>
 
 import argparse
-import concurrent.futures
 import itertools
 import os.path
 import shlex
@@ -129,8 +128,8 @@ def get_doubles(library, max_average):
 def get_doubles_of(library, i, max_average):
     errors = []
 
-    with concurrent.futures.ThreadPoolExecutor(4) as pool:
-        averages = pool.map(lambda j: get_distance(library, i, j), range(i + 1, len(library)))
+    averages = map(lambda j: get_distance(library, i, j), range(i + 1, len(library)))
+
     doubles_i = [
         idx
         for idx, average in zip(itertools.count(0), averages)
